@@ -7,6 +7,10 @@
 //
 
 #import "ImagesTableViewController.h"
+#import "DataSource.h"
+#import "Media.h"
+#import "User.h"
+#import "Comment.h"
 
 @interface ImagesTableViewController ()
 
@@ -16,15 +20,6 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
-    for (int i = 1; i <= 10; i++) {
-        NSString *imageName = [NSString stringWithFormat:@"%d.jpeg", i];
-        NSLog(@"imageName: %@",imageName);
-        UIImage *image = [UIImage imageNamed:imageName];
-        if (image) {
-            [self.images addObject:image];
-        }
-    }
     
     [self.tableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"imageCell"];
 }
@@ -37,7 +32,7 @@
 #pragma mark - Table view data source
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.images.count;
+    return [DataSource sharedInstance].mediaItems.count;
 }
 
 - (id) initWithStyle:(UITableViewStyle)style
@@ -45,16 +40,16 @@
     self = [ super initWithStyle:style];
     if (self) {
         // Custome initialization
-        self.images = [NSMutableArray array];
     }
     return self;
 }
 
 
 - (CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UIImage *image = self.images[indexPath.row];
-    CGFloat height = (CGRectGetWidth(self.view.frame)/image.size.width) * image.size.height;
-    return height;
+    Media *item = [DataSource sharedInstance].mediaItems[indexPath.row];
+    UIImage *image = item.image;
+    
+    return image.size.height / image.size.width * CGRectGetWidth(self.view.frame);
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -78,9 +73,10 @@
         imageView.tag = imageViewTag;
         [cell.contentView addSubview:imageView];
     }
+    
+    Media *item = [DataSource sharedInstance].mediaItems[indexPath.row];
+    imageView.image = item.image;
 
-    UIImage *image = self.images[indexPath.row];
-    imageView.image = image;
 
     return cell;
 }
@@ -93,8 +89,8 @@
     
     if (editingStyle == UITableViewCellEditingStyleDelete) {
         [tableView beginUpdates];
-        
-        [self.images removeObjectAtIndex:indexPath.row];
+
+        [[DataSource sharedInstance] removeMediaItemsAtIndex:indexPath.row];
         
         [tableView deleteRowsAtIndexPaths:@[indexPath]
                          withRowAnimation:UITableViewRowAnimationAutomatic];
@@ -102,7 +98,6 @@
         [tableView endUpdates];
         
     }
-    
 }
 
 @end
