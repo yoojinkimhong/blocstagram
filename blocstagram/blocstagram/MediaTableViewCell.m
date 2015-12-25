@@ -17,6 +17,7 @@
 @property (nonatomic, strong) UILabel *usernameAndCaptionLabel;
 @property (nonatomic, strong) UILabel *commentLabel;
 
+
 @end
 
 static UIFont *lightFont;
