@@ -8,6 +8,8 @@
 
 #import <UIKit/UIKit.h>
 #import "ImagesTableViewController.h"
+#import "LoginViewController.h"
+#import "DataSource.h"
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
