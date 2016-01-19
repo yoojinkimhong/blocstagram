@@ -113,7 +113,7 @@
         self.accessToken = note.object;
         
         // Got a token; populate the initial data
-        [self populateDataWithParameters:nil];
+        [self populateDataWithParameters:nil completionHandler:nil];
     }];
 }
 
@@ -123,13 +123,11 @@
     self.mediaItems = [mutableMediaItems copy];
 }
 
-- (void) populateDataWithParameters:(NSDictionary *)parameters {
+- (void) populateDataWithParameters:(NSDictionary *)parameters completionHandler:(NewItemCompletionBlock)completionHandler {
     if (self.accessToken) {
         // only try to get the data if there's an access token
-        
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
             // do the network request in the background, so the UI doesn't lock up
-            
             NSMutableString *urlString = [NSMutableString stringWithFormat:@"https://api.instagram.com/v1/users/self/media/recent?access_token=%@", self.accessToken];
             
             for (NSString *parameterName in parameters) {
@@ -154,10 +152,20 @@
                         dispatch_async(dispatch_get_main_queue(), ^{
                             // done networking, go back on the main thread
                             [self parseDataFromFeedDictionary:feedDictionary fromRequestWithParameters:parameters];
+                            
+                            if (completionHandler) {
+                                completionHandler(nil);
+                            }
                         });
-                    } else {
-                        NSLog(@"error: de cerealizing JSON feed data:%@", jsonError);
+                    } else if (completionHandler) {
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            completionHandler(jsonError);
+                        });
                     }
+                } else if (completionHandler) {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        completionHandler(webError);
+                    });
                 }
             }
         });
