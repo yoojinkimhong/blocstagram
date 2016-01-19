@@ -21,7 +21,10 @@ NSString *const LoginViewControllerDidGetAccessTokenNotification = @"LoginViewCo
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    // Do any additional setup after loading the view.
+    // Do any additional setup after loading the view
+    
+    //assignment back button
+    [self setUpNavigation];
     
     UIWebView *webView = [[UIWebView alloc]init];
     webView.delegate = self;
@@ -31,6 +34,10 @@ NSString *const LoginViewControllerDidGetAccessTokenNotification = @"LoginViewCo
     
     self.title = NSLocalizedString(@"Login", @"Login");
     
+    [self loadHomepage];
+}
+
+- (void)loadHomepage {
     NSString *urlString = [NSString stringWithFormat:@"https://instagram.com/oauth/authorize/?client_id=%@&redirect_uri=%@&response_type=token", [DataSource instagramClientID], [self redirectURI]];
     NSURL *url = [NSURL URLWithString:urlString];
     
@@ -38,6 +45,16 @@ NSString *const LoginViewControllerDidGetAccessTokenNotification = @"LoginViewCo
         NSURLRequest *request = [NSURLRequest requestWithURL:url];
         [self.webView loadRequest:request];
     }
+}
+
+- (void)setUpNavigation {
+    UIBarButtonItem *homeButton = [[UIBarButtonItem alloc] initWithTitle:@"Home" style:UIBarButtonItemStylePlain target:self action:@selector(homeButtonTapped:)];
+    
+    self.navigationItem.leftBarButtonItem = homeButton;
+}
+
+- (void)homeButtonTapped:(id)sender {
+    [self loadHomepage];
 }
 
 -(void) dealloc {
