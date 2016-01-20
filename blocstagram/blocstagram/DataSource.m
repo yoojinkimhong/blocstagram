@@ -21,7 +21,7 @@
 
 @property (nonatomic, assign) BOOL isRefreshing;
 @property (nonatomic, assign) BOOL isLoadingOlderItems;
-
+@property (nonatomic, assign) BOOL thereAreNoMoreOlderMessages;
 
 @end
 
@@ -63,31 +63,47 @@
 }
 
 - (void) requestOldItemsWithCompletionHandler:(NewItemCompletionBlock)completionHandler {
-    if (self.isLoadingOlderItems == NO) {
+    if (self.isLoadingOlderItems == NO && self.thereAreNoMoreOlderMessages == NO) {
         self.isLoadingOlderItems = YES;
         
-        // TODO: Add images
-        self.isLoadingOlderItems = NO;
+        NSString *maxID = [[self.mediaItems lastObject] idNumber];
+        NSDictionary *parameters;
         
-        if (completionHandler) {
-            completionHandler(nil);
+        if (maxID) {
+            parameters = @{@"max_id": maxID};
         }
+        
+        [self populateDataWithParameters:parameters completionHandler:^(NSError *error) {
+            self.isLoadingOlderItems = NO;
+            if (completionHandler) {
+                completionHandler(error);
+            }
+        }];
     }
 }
 
 - (void) requestNewItemsWithCompletionHandler:(NewItemCompletionBlock)completionHandler {
-    // #1
+    self.thereAreNoMoreOlderMessages = NO;
+    
     if (self.isRefreshing == NO) {
         self.isRefreshing = YES;
     }
     
-    // TODO: Add images
-        self.isRefreshing = NO;
-    
-    if (completionHandler) {
-        completionHandler (nil);
+    NSString *minID = [[self.mediaItems firstObject] idNumber];
+    NSDictionary *parameters;
+
+
+    if (minID) {
+        parameters = @{@"min_id": minID};
     }
-}
+    
+    [self populateDataWithParameters:parameters completionHandler:^(NSError *error) {
+        self.isRefreshing = NO;
+        
+        if (completionHandler) {
+            completionHandler(error);
+        }
+    }];}
 
 + (instancetype) sharedInstance {
     static dispatch_once_t once;
@@ -124,6 +140,7 @@
 }
 
 - (void) populateDataWithParameters:(NSDictionary *)parameters completionHandler:(NewItemCompletionBlock)completionHandler {
+    
     if (self.accessToken) {
         // only try to get the data if there's an access token
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
@@ -172,9 +189,8 @@
     }
 }
 
-- (void)parseDataFromFeedDictionary:(NSDictionary *)feedDictionary fromRequestWithParameters:(NSDictionary *)parameters {
+- (void) parseDataFromFeedDictionary:(NSDictionary *)feedDictionary fromRequestWithParameters:(NSDictionary *)parameters {
     NSArray *mediaArray = feedDictionary[@"data"];
-    
     NSMutableArray *tmpMediaItems = [NSMutableArray array];
     
     for (NSDictionary *mediaDictionary in mediaArray) {
@@ -188,9 +204,29 @@
         }
     }
     
-    [self willChangeValueForKey:@"mediaItems"];
-    self.mediaItems = tmpMediaItems;
-    [self didChangeValueForKey:@"mediaItems"];
+    NSMutableArray *mutableArrayWithKVO = [self mutableArrayValueForKey:@"mediaItems"];
+    
+    if (parameters[@"min_id"]) {
+        // This was a pull-to-refresh request
+        
+        NSRange rangeOfIndexes = NSMakeRange(0, tmpMediaItems.count);
+        NSIndexSet *indexSetOfNewObjects = [NSIndexSet indexSetWithIndexesInRange:rangeOfIndexes];
+        
+        [mutableArrayWithKVO insertObjects:tmpMediaItems atIndexes:indexSetOfNewObjects];
+    } else if (parameters[@"max_id"]) {
+        // This was an infinite scroll request
+        
+        if (tmpMediaItems.count == 0) {
+            // disable infinite scroll, since there are no more older messages
+            self.thereAreNoMoreOlderMessages = YES;
+        } else {
+            [mutableArrayWithKVO addObjectsFromArray:tmpMediaItems];
+        }
+    } else {
+        [self willChangeValueForKey:@"mediaItems"];
+        self.mediaItems = tmpMediaItems;
+        [self didChangeValueForKey:@"mediaItems"];
+    }
 }
 
 - (void) downloadImageForMediaItem:(Media *)mediaItem {
@@ -212,6 +248,7 @@
                         NSMutableArray *mutableArrayWithKVO = [self mutableArrayValueForKey:@"mediaItems"];
                         NSUInteger index = [mutableArrayWithKVO indexOfObject:mediaItem];
                         [mutableArrayWithKVO replaceObjectAtIndex:index withObject:mediaItem];
+
                     });
                 }
             } else {
