@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "User.h"
 
-@interface Comment : NSObject
+@interface Comment : NSObject <NSCoding>
 
 @property (nonatomic, strong) NSString *idNumber;
 
