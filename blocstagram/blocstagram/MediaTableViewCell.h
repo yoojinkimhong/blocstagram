@@ -8,12 +8,20 @@
 
 #import <UIKit/UIKit.h>
 
-@class Media;
+@class Media, MediaTableViewCell;
+
+@protocol MediaTableViewCellDelegate <NSObject>
+
+- (void) cell:(MediaTableViewCell *)cell didTapImageView:(UIImageView *)imageView;
+
+@end
+
 
 @interface MediaTableViewCell : UITableViewCell
 
 // *** NOTE *** This violates MVC and as a result is very bad coding practice - the view should NOT have a reference to the model - this creates an unwanted dependency.
 @property (nonatomic, strong) Media *mediaItem;
+@property (nonatomic, weak) id <MediaTableViewCellDelegate> delegate;
 
 + (CGFloat)heightForMediaItem:(Media *)mediaItem width:(CGFloat)width;
 
