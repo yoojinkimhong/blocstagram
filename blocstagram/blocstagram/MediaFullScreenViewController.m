@@ -38,7 +38,7 @@
     self.scrollView.delegate = self;
     self.scrollView.backgroundColor = [UIColor whiteColor];
     
-    [self.view addSubview:self.imageView];
+    [self.view addSubview:self.scrollView];
     
     //#2
     self.imageView = [UIImageView new];
